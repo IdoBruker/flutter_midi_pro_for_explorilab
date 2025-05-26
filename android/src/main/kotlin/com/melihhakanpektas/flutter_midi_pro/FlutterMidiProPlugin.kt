@@ -41,6 +41,7 @@ class FlutterMidiProPlugin: FlutterPlugin, MethodCallHandler {
 
   private lateinit var channel : MethodChannel
   private lateinit var flutterPluginBinding: FlutterPlugin.FlutterPluginBinding
+  private val TAG = "FlutterMidiProPlugin_FORK";
 
   override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     this.flutterPluginBinding = flutterPluginBinding
@@ -61,7 +62,9 @@ class FlutterMidiProPlugin: FlutterPlugin, MethodCallHandler {
               .getSystemService(Context.AUDIO_SERVICE) as AudioManager
             audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0)
 
+            Log.d(TAG, "Calling native loadSoundfont...")
             val sfId = loadSoundfont(path, bank, program)
+            Log.d(TAG, "Native loadSoundfont finished. sfId: $sfId")
 
             audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, 0)
 
