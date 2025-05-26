@@ -50,29 +50,28 @@ class FlutterMidiProPlugin: FlutterPlugin, MethodCallHandler {
  override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
     when (call.method) {
       "loadSoundfont" -> {
-        CoroutineScope(Dispatchers.IO).launch {
-          val path = call.argument<String>("path") as String
-          val bank = call.argument<Int>("bank")?:0
-          val program = call.argument<Int>("program")?:0
-          val audioManager = flutterPluginBinding.applicationContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-          
-          // Sesi mute yapma
-          audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0)
-          
-          // Soundfont yükleme işlemi (senkron, bloke eden çağrı)
-          val sfId = loadSoundfont(path, bank, program)
-          delay(250)
-          
-          // Sesi tekrar açma
-          audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, 0)
-          
-          // Sonucu ana thread'de Flutter'a iletme
-          withContext(Dispatchers.Main) {
+        val path = call.argument<String>("path") ?: ""
+        val bank = call.argument<Int>("bank") ?: 0
+        val program = call.argument<Int>("program") ?: 0
+
+        // Force native call to run on main thread
+        android.os.Handler(android.os.Looper.getMainLooper()).post {
+          try {
+            val audioManager = flutterPluginBinding.applicationContext
+              .getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0)
+
+            val sfId = loadSoundfont(path, bank, program)
+
+            audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, 0)
+
             if (sfId == -1) {
-              result.error("INVALID_ARGUMENT", "Something went wrong. Check the path of the template soundfont", null)
+              result.error("INVALID_ARGUMENT", "Failed to load soundfont at: $path", null)
             } else {
               result.success(sfId)
             }
+          } catch (e: Exception) {
+            result.error("LOAD_ERROR", e.message, null)
           }
         }
       }

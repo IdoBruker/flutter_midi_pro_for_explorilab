@@ -1,3 +1,5 @@
+forked the great: https://github.com/melihhakanpektas/flutter_midi_pro project because of a need to fix chromebook issue quickly
+
 # flutter_midi_pro
 
 [![pub package](https://img.shields.io/pub/v/flutter_midi_pro.svg)](https://pub.dartlang.org/packages/flutter_midi_pro)[![GitHub stars](https://img.shields.io/github/stars/MelihHakanPektas/flutter_midi_pro.svg?style=social)](https://github.com/MelihHakanPektas/flutter_midi_pro)
