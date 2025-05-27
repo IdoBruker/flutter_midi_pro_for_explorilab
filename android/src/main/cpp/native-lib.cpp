@@ -25,7 +25,6 @@ Java_com_melihhakanpektas_flutter_1midi_1pro_FlutterMidiProPlugin_loadSoundfont(
         __android_log_print(ANDROID_LOG_ERROR, "FluidSynth", "Failed to get audio.driver");
     }
 
-    fluid_settings_setstr(settings[nextSfId], "audio.driver", "opensles");
     fluid_settings_setnum(settings[nextSfId], "synth.gain", 1.0);
     fluid_settings_setint(settings[nextSfId], "audio.period-size", 64);
     fluid_settings_setint(settings[nextSfId], "audio.periods", 4);
