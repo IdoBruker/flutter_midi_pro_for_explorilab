@@ -36,9 +36,14 @@ Java_com_melihhakanpektas_flutter_1midi_1pro_FlutterMidiProPlugin_loadSoundfont(
     fluid_set_log_function(FLUID_PANIC, fluid_log_callback, nullptr);
     fluid_set_log_function(FLUID_ERR, fluid_log_callback, nullptr);
     fluid_set_log_function(FLUID_WARN, fluid_log_callback, nullptr);
+    fluid_set_log_function(FLUID_INFO, fluid_log_callback, nullptr);
+    fluid_set_log_function(FLUID_DBG, fluid_log_callback, nullptr);
 
     synths[nextSfId] = new_fluid_synth(settings[nextSfId]);
     drivers[nextSfId] = new_fluid_audio_driver(settings[nextSfId], synths[nextSfId]);
+
+    __android_log_print(ANDROID_LOG_DEBUG, "FluidSynth", "Trying to load soundfont at: %s", nativePath);
+
     int sfId = fluid_synth_sfload(synths[nextSfId], nativePath, 0);
 
     if (sfId == -1) {
