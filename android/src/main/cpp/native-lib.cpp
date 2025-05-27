@@ -12,7 +12,6 @@ int nextSfId = 1;
 extern "C" JNIEXPORT int JNICALL
 Java_com_melihhakanpektas_flutter_1midi_1pro_FlutterMidiProPlugin_loadSoundfont(JNIEnv* env, jclass clazz, jstring path, jint bank, jint program) {
     settings[nextSfId] = new_fluid_settings();
-    fluid_settings_setstr(settings[nextSfId], "audio.driver", "opensles");
 
     fluid_settings_setnum(settings[nextSfId], "synth.gain", 1.0);
     fluid_settings_setstr(settings[nextSfId], "audio.period-size", "64");
