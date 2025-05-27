@@ -16,54 +16,56 @@ void fluid_log_callback(int level, const char* message, void* data) {
 
 extern "C" JNIEXPORT int JNICALL
 Java_com_melihhakanpektas_flutter_1midi_1pro_FlutterMidiProPlugin_loadSoundfont(JNIEnv* env, jclass clazz, jstring path, jint bank, jint program) {
-    settings[nextSfId] = new_fluid_settings();
+    std::thread([=]() {
+        settings[nextSfId] = new_fluid_settings();
 
-    char *driver = nullptr;
-    if (fluid_settings_getstr_default(settings[nextSfId], "audio.driver", &driver)) {
-        __android_log_print(ANDROID_LOG_INFO, "FluidSynth", "Audio driver in use: %s", driver);
-    } else {
-        __android_log_print(ANDROID_LOG_ERROR, "FluidSynth", "Failed to get audio.driver");
-    }
+        char *driver = nullptr;
+        if (fluid_settings_getstr_default(settings[nextSfId],"audio.driver", &driver)) {
+            __android_log_print(ANDROID_LOG_INFO, "FluidSynth", "Audio driver in use: %s", driver);
+        } else {
+            __android_log_print(ANDROID_LOG_ERROR, "FluidSynth", "Failed to get audio.driver");
+        }
 
-    fluid_settings_setnum(settings[nextSfId], "synth.gain", 1.0);
-    fluid_settings_setint(settings[nextSfId], "audio.period-size", 64);
-    fluid_settings_setint(settings[nextSfId], "audio.periods", 4);
-    fluid_settings_setint(settings[nextSfId], "audio.realtime-prio", 99);
-    fluid_settings_setnum(settings[nextSfId], "synth.sample-rate", 44100.0);
-    fluid_settings_setint(settings[nextSfId], "synth.polyphony", 32);
-    
-    const char *nativePath = env->GetStringUTFChars(path, nullptr);
-    fluid_set_log_function(FLUID_PANIC, fluid_log_callback, nullptr);
-    fluid_set_log_function(FLUID_ERR, fluid_log_callback, nullptr);
-    fluid_set_log_function(FLUID_WARN, fluid_log_callback, nullptr);
-    fluid_set_log_function(FLUID_INFO, fluid_log_callback, nullptr);
-    fluid_set_log_function(FLUID_DBG, fluid_log_callback, nullptr);
+        fluid_settings_setnum(settings[nextSfId], "synth.gain", 1.0);
+        fluid_settings_setint(settings[nextSfId], "audio.period-size", 64);
+        fluid_settings_setint(settings[nextSfId], "audio.periods", 4);
+        fluid_settings_setint(settings[nextSfId], "audio.realtime-prio", 99);
+        fluid_settings_setnum(settings[nextSfId], "synth.sample-rate", 44100.0);
+        fluid_settings_setint(settings[nextSfId], "synth.polyphony", 32);
 
-    synths[nextSfId] = new_fluid_synth(settings[nextSfId]);
-    drivers[nextSfId] = new_fluid_audio_driver(settings[nextSfId], synths[nextSfId]);
+        const char *nativePath = env->GetStringUTFChars(path, nullptr);
+        fluid_set_log_function(FLUID_PANIC, fluid_log_callback, nullptr);
+        fluid_set_log_function(FLUID_ERR, fluid_log_callback, nullptr);
+        fluid_set_log_function(FLUID_WARN, fluid_log_callback, nullptr);
+        fluid_set_log_function(FLUID_INFO, fluid_log_callback, nullptr);
+        fluid_set_log_function(FLUID_DBG, fluid_log_callback, nullptr);
 
-    __android_log_print(ANDROID_LOG_DEBUG, "FluidSynth", "Trying to load soundfont at: %s", nativePath);
+        synths[nextSfId] = new_fluid_synth(settings[nextSfId]);
+        drivers[nextSfId] = new_fluid_audio_driver(settings[nextSfId], synths[nextSfId]);
 
-    FILE* file = fopen(nativePath, "rb");
-    if (!file) {
-        __android_log_print(ANDROID_LOG_ERROR, "FluidSynth", "Soundfont file not found or cannot be opened: %s", nativePath);
-    } else {
-        __android_log_print(ANDROID_LOG_DEBUG, "FluidSynth", "Soundfont file found and readable: %s", nativePath);
-        fclose(file);
-    }
+        __android_log_print(ANDROID_LOG_DEBUG, "FluidSynth", "Trying to load soundfont at: %s", nativePath);
 
-    int sfId = fluid_synth_sfload(synths[nextSfId], nativePath, 0);
-    __android_log_print(ANDROID_LOG_ERROR, "FluidSynth", "sfload() returned: %d", sfId);
+        FILE *file = fopen(nativePath, "rb");
+        if (!file) {
+            __android_log_print(ANDROID_LOG_ERROR, "FluidSynth", "Soundfont file not found or cannot be opened: %s", nativePath);
+        } else {
+            __android_log_print(ANDROID_LOG_DEBUG, "FluidSynth", "Soundfont file found and readable: %s", nativePath);
+            fclose(file);
+        }
 
-    if (sfId == -1) {
-        __android_log_print(ANDROID_LOG_ERROR, "FluidSynth", "Failed to load soundfont at path: %s", nativePath);
-    } else {
-        __android_log_print(ANDROID_LOG_ERROR, "FluidSynth", "loaded soundfont with id: %d", sfId);
-    }
+        int sfId = fluid_synth_sfload(synths[nextSfId], nativePath, 0);
+        __android_log_print(ANDROID_LOG_ERROR, "FluidSynth", "sfload() returned: %d", sfId);
 
-    for (int i = 0; i < 16; i++) {
-        fluid_synth_program_select(synths[nextSfId], i, sfId, bank, program);
-    }
+        if (sfId == -1) {
+            __android_log_print(ANDROID_LOG_ERROR, "FluidSynth", "Failed to load soundfont at path: %s", nativePath);
+        } else {
+            __android_log_print(ANDROID_LOG_ERROR, "FluidSynth", "loaded soundfont with id: %d", sfId);
+        }
+
+        for (int i = 0; i < 16; i++) {
+            fluid_synth_program_select(synths[nextSfId], i, sfId, bank, program);
+        }
+    }).detach();
 
     __android_log_print(ANDROID_LOG_ERROR, "FluidSynth", "selected programs for soundfontId: %d", sfId);
 
