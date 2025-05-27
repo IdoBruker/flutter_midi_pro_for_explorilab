@@ -52,12 +52,12 @@ Java_com_melihhakanpektas_flutter_1midi_1pro_FlutterMidiProPlugin_loadSoundfont(
     }
 
     int sfId = fluid_synth_sfload(synths[nextSfId], nativePath, 0);
-    __android_log_print(ANDROID_LOG_ERROR, "FluidSynth", "sfload() returned: %d", sfId);
+    __android_log_print(ANDROID_LOG_DEBUG, "FluidSynth", "sfload() returned: %d", sfId);
 
     if (sfId == -1) {
-        __android_log_print(ANDROID_LOG_ERROR, "FluidSynth", "Failed to load soundfont at path: %s", nativePath);
+        __android_log_print(ANDROID_LOG_DEBUG, "FluidSynth", "Failed to load soundfont at path: %s", nativePath);
     } else {
-        __android_log_print(ANDROID_LOG_ERROR, "FluidSynth", "loaded soundfont with id: %d", sfId);
+        __android_log_print(ANDROID_LOG_DEBUG, "FluidSynth", "loaded soundfont with id: %d", sfId);
     }
 
     drivers[nextSfId] = new_fluid_audio_driver(settings[nextSfId], synths[nextSfId]);
@@ -66,7 +66,7 @@ Java_com_melihhakanpektas_flutter_1midi_1pro_FlutterMidiProPlugin_loadSoundfont(
         fluid_synth_program_select(synths[nextSfId], i, sfId, bank, program);
     }
 
-    __android_log_print(ANDROID_LOG_ERROR, "FluidSynth", "selected programs for soundfontId: %d", sfId);
+    __android_log_print(ANDROID_LOG_DEBUG, "FluidSynth", "selected programs for soundfontId: %d", sfId);
 
     env->ReleaseStringUTFChars(path, nativePath);
     soundfonts[nextSfId] = sfId;
