@@ -40,6 +40,11 @@ Java_com_melihhakanpektas_flutter_1midi_1pro_FlutterMidiProPlugin_loadSoundfont(
     fluid_set_log_function(FLUID_DBG, fluid_log_callback, nullptr);
 
     synths[nextSfId] = new_fluid_synth(settings[nextSfId]);
+    if (synths[nextSfId] == nullptr) {
+        __android_log_print(ANDROID_LOG_ERROR, "FluidSynth", "Failed to create new_fluid_synth instance!");
+        env->ReleaseStringUTFChars(path, nativePath);
+        return -1;
+    }
 
     __android_log_print(ANDROID_LOG_DEBUG, "FluidSynth", "Trying to load soundfont at: %s", nativePath);
 
@@ -51,6 +56,7 @@ Java_com_melihhakanpektas_flutter_1midi_1pro_FlutterMidiProPlugin_loadSoundfont(
         fclose(file);
     }
 
+    __android_log_print(ANDROID_LOG_DEBUG, "FluidSynth", "Calling fluid_synth_sfload with synth: %p, path: %s", synths[nextSfId], nativePath);
     int sfId = fluid_synth_sfload(synths[nextSfId], nativePath, 0);
     __android_log_print(ANDROID_LOG_DEBUG, "FluidSynth", "sfload() returned: %d", sfId);
 
