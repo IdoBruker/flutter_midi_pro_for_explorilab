@@ -18,10 +18,7 @@ extern "C" JNIEXPORT int JNICALL
 Java_com_melihhakanpektas_flutter_1midi_1pro_FlutterMidiProPlugin_loadSoundfont(JNIEnv* env, jclass clazz, jstring path, jint bank, jint program) {
     settings[nextSfId] = new_fluid_settings();
 
-    const char* driver;
-    fluid_settings_getstr(settings[nextSfId], "audio.driver", &driver);
-    __android_log_print(ANDROID_LOG_INFO, "FluidSynth", "Default audio driver: %s", driver);
-    
+    fluid_settings_setstr(settings[nextSfId], "audio.driver", "opensles");
     fluid_settings_setnum(settings[nextSfId], "synth.gain", 1.0);
     fluid_settings_setint(settings[nextSfId], "audio.period-size", 64);
     fluid_settings_setint(settings[nextSfId], "audio.periods", 4);
@@ -37,6 +34,11 @@ Java_com_melihhakanpektas_flutter_1midi_1pro_FlutterMidiProPlugin_loadSoundfont(
     synths[nextSfId] = new_fluid_synth(settings[nextSfId]);
     drivers[nextSfId] = new_fluid_audio_driver(settings[nextSfId], synths[nextSfId]);
     int sfId = fluid_synth_sfload(synths[nextSfId], nativePath, 0);
+
+    if (sfId == -1) {
+        __android_log_print(ANDROID_LOG_ERROR, "FluidSynth", "Failed to load soundfont at path: %s", nativePath);
+    }
+
     for (int i = 0; i < 16; i++) {
         fluid_synth_program_select(synths[nextSfId], i, sfId, bank, program);
     }
