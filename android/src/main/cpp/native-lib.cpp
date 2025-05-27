@@ -45,15 +45,28 @@ Java_com_melihhakanpektas_flutter_1midi_1pro_FlutterMidiProPlugin_loadSoundfont(
 
     __android_log_print(ANDROID_LOG_DEBUG, "FluidSynth", "Trying to load soundfont at: %s", nativePath);
 
+    FILE* file = fopen(nativePath, "rb");
+    if (!file) {
+        __android_log_print(ANDROID_LOG_ERROR, "FluidSynth", "Soundfont file not found or cannot be opened: %s", nativePath);
+    } else {
+        __android_log_print(ANDROID_LOG_DEBUG, "FluidSynth", "Soundfont file found and readable: %s", nativePath);
+        fclose(file);
+    }
+
     int sfId = fluid_synth_sfload(synths[nextSfId], nativePath, 0);
 
     if (sfId == -1) {
         __android_log_print(ANDROID_LOG_ERROR, "FluidSynth", "Failed to load soundfont at path: %s", nativePath);
+    } else {
+        __android_log_print(ANDROID_LOG_ERROR, "FluidSynth", "loaded soundfont with id: %d", sfId);
     }
 
     for (int i = 0; i < 16; i++) {
         fluid_synth_program_select(synths[nextSfId], i, sfId, bank, program);
     }
+
+    __android_log_print(ANDROID_LOG_ERROR, "FluidSynth", "selected programs for soundfontId: %d", sfId);
+
     env->ReleaseStringUTFChars(path, nativePath);
     soundfonts[nextSfId] = sfId;
     nextSfId++;
