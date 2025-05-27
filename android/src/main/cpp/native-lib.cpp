@@ -2,6 +2,7 @@
 #include <fluidsynth.h>
 #include <unistd.h>
 #include <map>
+#include <android/log.h>
 
 std::map<int, fluid_synth_t*> synths = {};
 std::map<int, fluid_audio_driver_t*> drivers = {};
@@ -9,18 +10,27 @@ std::map<int, fluid_settings_t*> settings = {};
 std::map<int, int> soundfonts = {};
 int nextSfId = 1;
 
+void fluid_log_callback(int level, const char* message, void* data) {
+    __android_log_print(ANDROID_LOG_ERROR, "FluidSynth", "%s", message);
+}
+
 extern "C" JNIEXPORT int JNICALL
 Java_com_melihhakanpektas_flutter_1midi_1pro_FlutterMidiProPlugin_loadSoundfont(JNIEnv* env, jclass clazz, jstring path, jint bank, jint program) {
     settings[nextSfId] = new_fluid_settings();
 
+    fluid_settings_setstr(settings[nextSfId], "audio.driver", "aaudio");
     fluid_settings_setnum(settings[nextSfId], "synth.gain", 1.0);
-    fluid_settings_setstr(settings[nextSfId], "audio.period-size", "64");
-    fluid_settings_setstr(settings[nextSfId], "audio.periods", "4");
-    fluid_settings_setstr(settings[nextSfId], "audio.realtime-prio", "99");
-    fluid_settings_setstr(settings[nextSfId], "synth.sample-rate", "44100");
-    fluid_settings_setstr(settings[nextSfId], "synth.polyphony", "32");
+    fluid_settings_setint(settings[nextSfId], "audio.period-size", 64);
+    fluid_settings_setint(settings[nextSfId], "audio.periods", 4);
+    fluid_settings_setint(settings[nextSfId], "audio.realtime-prio", 99);
+    fluid_settings_setnum(settings[nextSfId], "synth.sample-rate", 44100.0);
+    fluid_settings_setint(settings[nextSfId], "synth.polyphony", 32);
     
     const char *nativePath = env->GetStringUTFChars(path, nullptr);
+    fluid_set_log_function(FLUID_PANIC, fluid_log_callback, nullptr);
+    fluid_set_log_function(FLUID_ERR, fluid_log_callback, nullptr);
+    fluid_set_log_function(FLUID_WARN, fluid_log_callback, nullptr);
+
     synths[nextSfId] = new_fluid_synth(settings[nextSfId]);
     drivers[nextSfId] = new_fluid_audio_driver(settings[nextSfId], synths[nextSfId]);
     int sfId = fluid_synth_sfload(synths[nextSfId], nativePath, 0);
