@@ -41,7 +41,6 @@ class FlutterMidiProPlugin: FlutterPlugin, MethodCallHandler {
 
   private lateinit var channel : MethodChannel
   private lateinit var flutterPluginBinding: FlutterPlugin.FlutterPluginBinding
-  private val TAG = "FlutterMidiProPlugin_FORK";
 
   override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     this.flutterPluginBinding = flutterPluginBinding
@@ -51,30 +50,29 @@ class FlutterMidiProPlugin: FlutterPlugin, MethodCallHandler {
  override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
     when (call.method) {
       "loadSoundfont" -> {
-        val path = call.argument<String>("path") ?: ""
-        val bank = call.argument<Int>("bank") ?: 0
-        val program = call.argument<Int>("program") ?: 0
+        CoroutineScope(Dispatchers.IO).launch {
+          val path = call.argument<String>("path") as String
+          val bank = call.argument<Int>("bank")?:0
+          val program = call.argument<Int>("program")?:0
+          val audioManager = flutterPluginBinding.applicationContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
-        // Force native call to run on main thread
-        android.os.Handler(android.os.Looper.getMainLooper()).post {
-          try {
-            val audioManager = flutterPluginBinding.applicationContext
-              .getSystemService(Context.AUDIO_SERVICE) as AudioManager
-            audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0)
+          // Sesi mute yapma
+          audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0)
 
-            Log.i(TAG, "Calling native loadSoundfont...")
-            val sfId = loadSoundfont(path, bank, program)
-            Log.i(TAG, "Native loadSoundfont finished. sfId: $sfId")
+          // Soundfont yükleme işlemi (senkron, bloke eden çağrı)
+          val sfId = loadSoundfont(path, bank, program)
+          delay(250)
 
-            audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, 0)
+          // Sesi tekrar açma
+          audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, 0)
 
+          // Sonucu ana thread'de Flutter'a iletme
+          withContext(Dispatchers.Main) {
             if (sfId == -1) {
-              result.error("INVALID_ARGUMENT", "Failed to load soundfont at: $path", null)
+              result.error("INVALID_ARGUMENT", "Something went wrong. Check the path of the template soundfont", null)
             } else {
               result.success(sfId)
             }
-          } catch (e: Exception) {
-            result.error("LOAD_ERROR", e.message, null)
           }
         }
       }
