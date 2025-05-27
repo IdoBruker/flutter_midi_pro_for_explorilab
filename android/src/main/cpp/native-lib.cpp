@@ -18,7 +18,7 @@ extern "C" JNIEXPORT int JNICALL
 Java_com_melihhakanpektas_flutter_1midi_1pro_FlutterMidiProPlugin_loadSoundfont(JNIEnv* env, jclass clazz, jstring path, jint bank, jint program) {
     settings[nextSfId] = new_fluid_settings();
 
-    const char *driver = nullptr;
+    char *driver = nullptr;
     if (fluid_settings_getstr_default(settings[nextSfId], "audio.driver", &driver)) {
         __android_log_print(ANDROID_LOG_INFO, "FluidSynth", "Audio driver in use: %s", driver);
     } else {
