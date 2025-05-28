@@ -3,7 +3,7 @@
 ####### Any changes to this file will be overwritten by the next CMake run ####
 ####### The input file was VorbisConfig.cmake.in                            ########
 
-get_filename_component(PACKAGE_PREFIX_DIR "${CMAKE_CURRENT_LIST_DIR}/../../../" ABSOLUTE)
+get_filename_component(PACKAGE_PREFIX_DIR "../../.." ABSOLUTE)
 
 macro(set_and_check _var _file)
   set(${_var} "${_file}")
@@ -27,7 +27,7 @@ endmacro()
 include(CMakeFindDependencyMacro)
 find_dependency(Ogg REQUIRED)
 
-include(${CMAKE_CURRENT_LIST_DIR}/VorbisTargets.cmake)
+include(VorbisTargets.cmake)
 
 set(Vorbis_Vorbis_FOUND 1)
 set(Vorbis_Enc_FOUND 0)

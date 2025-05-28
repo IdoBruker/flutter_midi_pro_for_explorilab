@@ -1,7 +1,7 @@
-set(SndFile_VERSION 1.2.0)
+set(SndFile_VERSION 1.2.2)
 set(SndFile_VERSION_MAJOR 1)
 set(SndFile_VERSION_MINOR 2)
-set(SndFile_VERSION_PATCH 0)
+set(SndFile_VERSION_PATCH 2)
 
 set (SndFile_WITH_EXTERNAL_LIBS 1)
 set (SndFile_WITH_MPEG 0)
@@ -11,7 +11,7 @@ set (SndFile_WITH_MPEG 0)
 ####### Any changes to this file will be overwritten by the next CMake run ####
 ####### The input file was SndFileConfig.cmake.in                            ########
 
-get_filename_component(PACKAGE_PREFIX_DIR "${CMAKE_CURRENT_LIST_DIR}/../../../" ABSOLUTE)
+get_filename_component(PACKAGE_PREFIX_DIR "../../.." ABSOLUTE)
 
 macro(set_and_check _var _file)
   set(${_var} "${_file}")
@@ -34,6 +34,10 @@ endmacro()
 
 include (CMakeFindDependencyMacro)
 
+if (NOT 1)
+	list (APPEND CMAKE_MODULE_PATH .)
+endif ()
+
 if (SndFile_WITH_EXTERNAL_LIBS AND NOT 1)
 	find_dependency (Ogg 1.3)
 	find_dependency (Vorbis)
@@ -43,10 +47,14 @@ endif ()
 
 if (SndFile_WITH_MPEG AND NOT 1)
 	find_dependency (mp3lame)
-	find_dependency (MPG123)
+	find_dependency (mpg123)
 endif ()
 
-include (${CMAKE_CURRENT_LIST_DIR}/SndFileTargets.cmake)
+if (NOT 1)
+	list (REMOVE_ITEM CMAKE_MODULE_PATH .)
+endif ()
+
+include (SndFileTargets.cmake)
 
 set_and_check (SndFile_INCLUDE_DIR "${PACKAGE_PREFIX_DIR}/include")
 set (SNDFILE_INCLUDE_DIR ${SndFile_INCLUDE_DIR})

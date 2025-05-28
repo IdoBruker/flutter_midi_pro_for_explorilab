@@ -18,8 +18,8 @@ extern "C" JNIEXPORT int JNICALL
 Java_com_melihhakanpektas_flutter_1midi_1pro_FlutterMidiProPlugin_loadSoundfont(JNIEnv* env, jclass clazz, jstring path, jint bank, jint program) {
     settings[nextSfId] = new_fluid_settings();
 
-    // Explicitly set the audio driver to oboe
-    fluid_settings_setstr(settings[nextSfId], "audio.driver", "oboe");
+    // Explicitly set the audio driver to opensles
+    fluid_settings_setstr(settings[nextSfId], "audio.driver", "opensles");
 
     char *driver = nullptr;
     if (fluid_settings_getstr_default(settings[nextSfId], "audio.driver", &driver)) {

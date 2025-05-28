@@ -3,7 +3,7 @@
 ####### Any changes to this file will be overwritten by the next CMake run ####
 ####### The input file was OggConfig.cmake.in                            ########
 
-get_filename_component(PACKAGE_PREFIX_DIR "${CMAKE_CURRENT_LIST_DIR}/../../../" ABSOLUTE)
+get_filename_component(PACKAGE_PREFIX_DIR "../../.." ABSOLUTE)
 
 macro(set_and_check _var _file)
   set(${_var} "${_file}")
@@ -29,7 +29,7 @@ set(OGG_INCLUDE_DIR "${PACKAGE_PREFIX_DIR}/include")
 set(Ogg_INCLUDE_DIRS "${PACKAGE_PREFIX_DIR}/include")
 set(OGG_INCLUDE_DIRS "${PACKAGE_PREFIX_DIR}/include")
 
-include(${CMAKE_CURRENT_LIST_DIR}/OggTargets.cmake)
+include(OggTargets.cmake)
 
 set(Ogg_LIBRARY Ogg::ogg)
 set(OGG_LIBRARY Ogg::ogg)

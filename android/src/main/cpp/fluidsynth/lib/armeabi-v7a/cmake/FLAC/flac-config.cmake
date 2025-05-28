@@ -3,7 +3,7 @@
 ####### Any changes to this file will be overwritten by the next CMake run ####
 ####### The input file was flac-config.cmake.in                            ########
 
-get_filename_component(PACKAGE_PREFIX_DIR "${CMAKE_CURRENT_LIST_DIR}/../../../" ABSOLUTE)
+get_filename_component(PACKAGE_PREFIX_DIR "../../.." ABSOLUTE)
 
 macro(set_and_check _var _file)
   set(${_var} "${_file}")
@@ -29,7 +29,7 @@ if(NOT TARGET Ogg::ogg)
     find_dependency(Ogg)
 endif()
 
-include("${CMAKE_CURRENT_LIST_DIR}/targets.cmake")
+include("targets.cmake")
 
 if(TARGET FLAC::FLAC)
     set(FLAC_FLAC_FOUND 1)
