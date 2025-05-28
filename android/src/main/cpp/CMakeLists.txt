@@ -9,14 +9,7 @@ set(fluidsynth_DIR ${CMAKE_CURRENT_SOURCE_DIR}/fluidsynth)
 # Our code (native-lib.cpp) will be calling fluidsynth functions, so we add the fluidsynth binaries as dependencies of our code.
 
 add_library(libfluidsynth SHARED IMPORTED)
-set(SHARED_LIBRARY_SO ${CMAKE_CURRENT_SOURCE_DIR}/../fluidsynth/lib/${CMAKE_ANDROID_ARCH_ABI}/libfluidsynth.so)
-set_target_properties(libfluidsynth PROPERTIES IMPORTED_LOCATION ${SHARED_LIBRARY_SO})
-
-add_library(libc++_shared SHARED IMPORTED)
-set_target_properties(libc++_shared PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libc++_shared.so)
-
-add_library(libomp SHARED IMPORTED)
-set_target_properties(libomp PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libomp.so)
+set_target_properties(libfluidsynth PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libfluidsynth.so)
 
 add_library(libFLAC SHARED IMPORTED)
 set_target_properties(libFLAC PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libFLAC.so)
@@ -69,11 +62,17 @@ set_target_properties(libvorbisenc PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR
 add_library(libvorbisfile SHARED IMPORTED)
 set_target_properties(libvorbisfile PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libvorbisfile.so)
 
-find_package(OpenMP REQUIRED)
+# Library that will be called directly from JAVA
+add_library(native-lib SHARED native-lib.cpp)
 
-add_library(fluidsynth INTERFACE)
-target_link_libraries(fluidsynth INTERFACE
+# Specifies the directory where the C or C++ source coude will look the #include <yourlibrary.h> header files
+target_include_directories(native-lib PRIVATE ${fluidsynth_DIR}/include)
+
+# Link everything alltogether. Notice that native-lib should be the first element in the list.
+target_link_libraries(
+        native-lib
         libFLAC
+        libfluidsynth
         libfluidsynth-assetloader
         libgio-2.0
         libglib-2.0
@@ -90,6 +89,6 @@ target_link_libraries(fluidsynth INTERFACE
         libvorbis
         libvorbisenc
         libvorbisfile
-        libfluidsynth
-        OpenMP::OpenMP_CXX
+        android
+        log
 )
