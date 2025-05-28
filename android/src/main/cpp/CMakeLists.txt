@@ -6,13 +6,17 @@ cmake_minimum_required(VERSION 3.4.1)
 
 # Create a variable fluidsynth_DIR to specify where the fluidsynth library is located.
 set(fluidsynth_DIR ${CMAKE_CURRENT_SOURCE_DIR}/fluidsynth)
+
 # Our code (native-lib.cpp) will be calling fluidsynth functions, so we add the fluidsynth binaries as dependencies of our code.
 
 add_library(libc++_shared SHARED IMPORTED)
 set_target_properties(libc++_shared PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libc++_shared.so)
 
-add_library(libomp SHARED IMPORTED)
-set_target_properties(libomp PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libomp.so)
+add_library(libcharset SHARED IMPORTED)
+set_target_properties(libcharset PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libcharset.so)
+
+add_library(libffi SHARED IMPORTED)
+set_target_properties(libffi PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libffi.so)
 
 add_library(libFLAC SHARED IMPORTED)
 set_target_properties(libFLAC PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libFLAC.so)
@@ -38,23 +42,17 @@ set_target_properties(libgobject-2.0 PROPERTIES IMPORTED_LOCATION ${fluidsynth_D
 add_library(libgthread-2.0 SHARED IMPORTED)
 set_target_properties(libgthread-2.0 PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libgthread-2.0.so)
 
-add_library(libinstpatch-1.0 SHARED IMPORTED)
-set_target_properties(libinstpatch-1.0 PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libinstpatch-1.0.so)
+add_library(libiconv SHARED IMPORTED)
+set_target_properties(libiconv PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libiconv.so)
+
+add_library(libintl SHARED IMPORTED)
+set_target_properties(libintl PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libintl.so)
 
 add_library(liboboe SHARED IMPORTED)
 set_target_properties(liboboe PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/liboboe.so)
 
 add_library(libogg SHARED IMPORTED)
 set_target_properties(libogg PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libogg.so)
-
-add_library(libopus SHARED IMPORTED)
-set_target_properties(libopus PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libopus.so)
-
-add_library(libpcre SHARED IMPORTED)
-set_target_properties(libpcre PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libpcre.so)
-
-add_library(libpcreposix SHARED IMPORTED)
-set_target_properties(libpcreposix PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libpcreposix.so)
 
 add_library(libsndfile SHARED IMPORTED)
 set_target_properties(libsndfile PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libsndfile.so)
@@ -68,6 +66,12 @@ set_target_properties(libvorbisenc PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR
 add_library(libvorbisfile SHARED IMPORTED)
 set_target_properties(libvorbisfile PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libvorbisfile.so)
 
+add_library(libz SHARED IMPORTED)
+set_target_properties(libz PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libz.so)
+
+add_library(preloadable_libiconv SHARED IMPORTED)
+set_target_properties(preloadable_libiconv PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/preloadable_libiconv.so)
+
 # Library that will be called directly from JAVA
 add_library(native-lib SHARED native-lib.cpp)
 
@@ -77,8 +81,9 @@ target_include_directories(native-lib PRIVATE ${fluidsynth_DIR}/include)
 # Link everything alltogether. Notice that native-lib should be the first element in the list.
 target_link_libraries(
         native-lib
-        libomp
         libc++_shared
+        libcharset
+        libffi
         libFLAC
         libfluidsynth
         libfluidsynth-assetloader
@@ -87,16 +92,14 @@ target_link_libraries(
         libgmodule-2.0
         libgobject-2.0
         libgthread-2.0
-        libinstpatch-1.0
+        libiconv
+        libintl
         liboboe
         libogg
-        libopus
-        libpcre
-        libpcreposix
         libsndfile
         libvorbis
         libvorbisenc
         libvorbisfile
-        android
-        log
+        libz
+        preloadable_libiconv
 )
