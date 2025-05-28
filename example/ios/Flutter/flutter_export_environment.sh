@@ -1,12 +1,12 @@
 #!/bin/sh
 # This is a generated file; do not edit or check into version control.
-export "FLUTTER_ROOT=C:\flutter"
-export "FLUTTER_APPLICATION_PATH=C:\Users\melih\FlutterProjects\flutter_midi_pro\example"
+export "FLUTTER_ROOT=C:\Users\idobr\.Flutter\flutter"
+export "FLUTTER_APPLICATION_PATH=C:\Users\idobr\Documents\Projects\Globisens\flutter_midi_pro_for_explorilab\example"
 export "COCOAPODS_PARALLEL_CODE_SIGN=true"
 export "FLUTTER_TARGET=lib\main.dart"
 export "FLUTTER_BUILD_DIR=build"
-export "FLUTTER_BUILD_NAME=0.1.0"
-export "FLUTTER_BUILD_NUMBER=0.1.0"
+export "FLUTTER_BUILD_NAME=1.0.0"
+export "FLUTTER_BUILD_NUMBER=1"
 export "DART_OBFUSCATION=false"
 export "TRACK_WIDGET_CREATION=true"
 export "TREE_SHAKE_ICONS=false"
