@@ -100,8 +100,8 @@ class FlutterMidiProWeb extends FlutterMidiProPlatform {
     final initOptions = SynthInitOptions(
       // Lower gain to reduce clipping artifacts in browsers.
       initialGain: 0.45.toJS,
-      // Slightly lower polyphony to ease CPU on web.
-      polyphony: 48.toJS,
+      // Lower polyphony to ease CPU and reduce voice stealing.
+      polyphony: 32.toJS,
       midiChannelCount: 16.toJS,
     );
     _log(
@@ -118,7 +118,7 @@ class FlutterMidiProWeb extends FlutterMidiProPlatform {
     final node = synthObj.createAudioNode(
       ctx,
       // Larger buffer helps avoid underruns/metallic artifacts on web.
-      1024.toJS,
+      2048.toJS,
     );
     if (node == null) {
       _log('createAudioNode returned null.');

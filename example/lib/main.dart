@@ -24,6 +24,9 @@ class _MyAppState extends State<MyApp> {
   final channelIndex = ValueNotifier<int>(0);
   final volume = ValueNotifier<int>(127);
   Map<int, NoteModel> pointerAndNote = {};
+  int? _lastKey;
+  int _lastChannel = 0;
+  int? _lastSfId;
 
   /// Loads a soundfont file from the specified path.
   /// Returns the soundfont ID.
@@ -70,8 +73,15 @@ class _MyAppState extends State<MyApp> {
     if (!loadedSoundfonts.value.containsKey(sfId)) {
       sfIdValue = loadedSoundfonts.value.keys.first;
     }
+    // Stop previous note on the same channel to avoid stacking artifacts.
+    if (_lastKey != null && _lastSfId == sfIdValue && _lastChannel == channel) {
+      await midiPro.stopNote(channel: channel, key: _lastKey!, sfId: sfIdValue);
+    }
     await midiPro.playNote(
         channel: channel, key: key, velocity: velocity, sfId: sfIdValue);
+    _lastKey = key;
+    _lastChannel = channel;
+    _lastSfId = sfIdValue;
   }
 
   /// Stops a note on the specified channel.
