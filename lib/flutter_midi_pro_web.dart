@@ -3,7 +3,6 @@ import 'dart:async';
 import 'dart:js_interop';
 import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:web/web.dart' as web;
@@ -14,10 +13,14 @@ class FlutterMidiProWeb extends FlutterMidiProPlatform {
   // Flutter serves package assets for the web build under assets/packages/<pkg>/...
   static const _jsAssetBase =
       'assets/packages/flutter_midi_pro/assets/web/js_synthesizer';
+  static const _fluidsynthModule = '$_jsAssetBase/libfluidsynth-2.4.6.js';
+  static const _synthWorkletModule =
+      '$_jsAssetBase/js-synthesizer.worklet.min.js';
 
   void _log(String message) {
-    // debugPrint keeps logs concise and is dropped in release.
-    debugPrint('[flutter_midi_pro_web] $message');
+    // debug logging on web to help diagnose worker/worklet failures.
+    // ignore: avoid_print
+    print('[flutter_midi_pro_web] $message');
   }
 
   static void registerWith(Registrar registrar) {
@@ -27,28 +30,8 @@ class FlutterMidiProWeb extends FlutterMidiProPlatform {
 
   final Map<int, _WebSynth> _synths = {};
   int _nextId = 1;
-  Future<void>? _loader;
   web.AudioContext? _audioContext;
-
-  Future<void> _ensureLibrariesLoaded() {
-    _loader ??= _loadLibraries();
-    return _loader!;
-  }
-
-  Future<void> _loadLibraries() async {
-    // Scripts are expected to be preloaded in web/index.html.
-    final jsSynth = _jsSynth;
-    if (jsSynth == null) {
-      _log('JSSynth global is null.');
-      throw StateError(
-        'JSSynth not found. Ensure web/index.html preloads '
-        '$_jsAssetBase/libfluidsynth-2.4.6.js and js-synthesizer.min.js.',
-      );
-    }
-    _log('JSSynth found, waiting for ready.');
-    await jsSynth.waitForReady().toDart;
-    _log('JSSynth is ready.');
-  }
+  Future<void>? _workletModuleLoader;
 
   Future<web.AudioContext> _ensureAudioContext() async {
     if (_audioContext != null) {
@@ -64,7 +47,39 @@ class FlutterMidiProWeb extends FlutterMidiProPlatform {
     return ctx;
   }
 
-  JSSynth? get _jsSynth => _jsSynthGlobal;
+  Future<void> _ensureWorkletModule(web.AudioContext ctx) {
+    final worklet = ctx.audioWorklet;
+    _workletModuleLoader ??= () async {
+      _log(
+          'Loading AudioWorklet modules: $_fluidsynthModule then $_synthWorkletModule');
+      await worklet.addModule(_fluidsynthModule).toDart;
+      await worklet.addModule(_synthWorkletModule).toDart;
+      _log('AudioWorklet modules loaded');
+    }();
+    return _workletModuleLoader!;
+  }
+
+  Future<_WebSynth> _createWorkletSynth(web.AudioContext ctx) async {
+    final jsSynth = _jsSynth;
+    if (jsSynth == null) {
+      throw StateError('JSSynth global not found on window');
+    }
+    final ctor = jsSynth.audioWorkletNodeSynthesizer;
+    if (ctor == null) {
+      throw StateError('JSSynth.AudioWorkletNodeSynthesizer not available');
+    }
+    final synth = AudioWorkletNodeSynthesizer();
+    synth.init(ctx.sampleRate.toJS);
+    _log('AudioWorkletNodeSynthesizer initialized at ${ctx.sampleRate}');
+    final node = synth.createAudioNode(ctx);
+    node.connect(ctx.destination);
+    _log('AudioWorklet node created and connected');
+    return _WebSynth(
+      synth: synth,
+      node: node,
+      ready: Completer<void>()..complete(), // init done immediately
+    );
+  }
 
   @override
   Future<int> loadSoundfont(String assetPath, int bank, int program) async {
@@ -78,71 +93,29 @@ class FlutterMidiProWeb extends FlutterMidiProPlatform {
 
   @override
   Future<int> loadSoundfontBytes(Uint8List data, int bank, int program) async {
-    await _ensureLibrariesLoaded();
     final ctx = await _ensureAudioContext();
-    final jsSynth = _jsSynth;
-    if (jsSynth == null) {
-      _log('JSSynth is null inside loadSoundfontBytes.');
-      throw StateError('JSSynth is not available after script load.');
-    }
-    final synthCtor = jsSynth.synthesizer;
-    if (synthCtor == null) {
-      _log('JSSynth.Synthesizer is null.');
-      throw StateError(
-        'JSSynth.Synthesizer not found. Confirm scripts load order: '
-        'libfluidsynth-2.4.6.js then js-synthesizer.min.js.',
-      );
-    }
-    _log('Found synthesizer constructor on JSSynth.');
-    final synthInstance = Synthesizer();
-    _log('Synthesizer constructed. Starting init.');
-    final synthObj = synthInstance;
-    final initOptions = SynthInitOptions(
-      // Lower gain to reduce clipping artifacts in browsers.
-      initialGain: 0.45.toJS,
-      // Lower polyphony to ease CPU and reduce voice stealing.
-      polyphony: 32.toJS,
-      midiChannelCount: 16.toJS,
-    );
+    await _ensureWorkletModule(ctx);
+    final synth = await _createWorkletSynth(ctx);
     _log(
-      'Calling init(sampleRate=${ctx.sampleRate}) with gain=${0.8}, '
-      'polyphony=64, midiChannels=16.',
-    );
-    synthObj.init(ctx.sampleRate.toJS, initOptions);
-    _log(
-        'Synthesizer init done; loading SoundFont bytes (${data.length} bytes).');
-    final loadResult = await synthObj.loadSFont(data.buffer.toJS).toDart;
-    final int sfontId = (loadResult as num?)?.toInt() ??
+        'AudioWorklet synth created, loading SoundFont (${data.lengthInBytes} bytes)');
+    final loadResult = await synth.synth.loadSFont(data.buffer.toJS).toDart;
+    final sfontId = (loadResult as num?)?.toInt() ??
         (throw StateError('loadSFont returned null/undefined'));
-    _log('SoundFont loaded with id $sfontId; creating audio node.');
-    final node = synthObj.createAudioNode(
-      ctx,
-      // Larger buffer helps avoid underruns/metallic artifacts on web.
-      2048.toJS,
-    );
-    if (node == null) {
-      _log('createAudioNode returned null.');
-      throw StateError('createAudioNode returned null/undefined');
-    }
-    _log('Audio node created; connecting to destination.');
-    node.connect(ctx.destination);
-    // Match native behavior by selecting program on all 16 channels.
-    _log('Selecting bank=$bank program=$program on all 16 channels.');
+    synth.soundfontId = sfontId;
+    _log('SoundFont loaded id=$sfontId, selecting programs across channels');
+    // Default program selection across all channels to align with native behavior.
     for (var channel = 0; channel < 16; channel++) {
-      synthObj.midiProgramSelect(
+      synth.synth.midiProgramSelect(
         channel.toJS,
         sfontId.toJS,
         bank.toJS,
         program.toJS,
       );
     }
-    _log('Program selection done; storing synth instance.');
-    final synth = _WebSynth(
-      synth: synthObj,
-      node: node,
-      soundfontId: sfontId,
-    );
+
     final id = _nextId++;
+    synth.id = id;
+    synth.soundfontId = sfontId;
     _synths[id] = synth;
     return id;
   }
@@ -155,10 +128,13 @@ class FlutterMidiProWeb extends FlutterMidiProPlatform {
     int program,
   ) async {
     final synth = _synths[sfId];
-    if (synth == null) return;
+    final sfontId = synth?.soundfontId;
+    if (synth == null || sfontId == null) return;
+    _log(
+        'selectInstrument sfId=$sfId channel=$channel bank=$bank program=$program');
     synth.synth.midiProgramSelect(
       channel.toJS,
-      synth.soundfontId.toJS,
+      sfontId.toJS,
       bank.toJS,
       program.toJS,
     );
@@ -175,6 +151,7 @@ class FlutterMidiProWeb extends FlutterMidiProPlatform {
         // ignore
       }
     }
+    _log('noteOn sfId=$sfId channel=$channel key=$key velocity=$velocity');
     synth.synth.midiNoteOn(channel.toJS, key.toJS, velocity.toJS);
   }
 
@@ -182,6 +159,7 @@ class FlutterMidiProWeb extends FlutterMidiProPlatform {
   Future<void> stopNote(int channel, int key, int sfId) async {
     final synth = _synths[sfId];
     if (synth == null) return;
+    _log('noteOff sfId=$sfId channel=$channel key=$key');
     synth.synth.midiNoteOff(channel.toJS, key.toJS);
   }
 
@@ -189,6 +167,7 @@ class FlutterMidiProWeb extends FlutterMidiProPlatform {
   Future<void> stopAllNotes(int sfId) async {
     final synth = _synths[sfId];
     if (synth == null) return;
+    _log('stopAllNotes sfId=$sfId');
     for (var channel = 0; channel < 16; channel++) {
       synth.synth.midiAllNotesOff(channel.toJS);
       synth.synth.midiAllSoundsOff(channel.toJS);
@@ -200,12 +179,8 @@ class FlutterMidiProWeb extends FlutterMidiProPlatform {
   Future<void> unloadSoundfont(int sfId) async {
     final synth = _synths.remove(sfId);
     if (synth == null) return;
-    for (var channel = 0; channel < 16; channel++) {
-      synth.synth.midiAllSoundsOff(channel.toJS);
-      synth.synth.midiAllNotesOff(channel.toJS);
-    }
     synth.synth.midiSystemReset();
-    synth.synth.unloadSFont(synth.soundfontId.toJS);
+    synth.synth.unloadSFont(synth.soundfontId?.toJS ?? 0.toJS);
     synth.node.disconnect();
     synth.synth.close();
   }
@@ -222,42 +197,40 @@ class FlutterMidiProWeb extends FlutterMidiProPlatform {
 
 class _WebSynth {
   _WebSynth({
-    required this.synth,
     required this.node,
-    required this.soundfontId,
+    required this.ready,
+    required this.synth,
   });
 
-  final Synthesizer synth;
-  final web.AudioNode node;
-  final int soundfontId;
+  int? id;
+  final web.AudioWorkletNode node;
+  final Completer<void> ready;
+  final AudioWorkletNodeSynthesizer synth;
+  int? soundfontId;
 }
 
 @JS('JSSynth')
-external JSSynth? get _jsSynthGlobal;
+external _JSSynth? get _jsSynth;
 
 @JS('JSSynth')
 @staticInterop
-class JSSynth {}
+class _JSSynth {}
 
-extension JSSynthExt on JSSynth {
-  external JSPromise waitForReady();
-  @JS('Synthesizer')
-  external JSFunction? get synthesizer;
+extension _JSSynthExt on _JSSynth {
+  @JS('AudioWorkletNodeSynthesizer')
+  external JSFunction? get audioWorkletNodeSynthesizer;
 }
 
-@JS('JSSynth.Synthesizer')
+@JS('JSSynth.AudioWorkletNodeSynthesizer')
 @staticInterop
-class Synthesizer {
-  external factory Synthesizer();
+class AudioWorkletNodeSynthesizer {
+  external factory AudioWorkletNodeSynthesizer();
 }
 
-extension SynthesizerExt on Synthesizer {
-  external void init(JSAny sampleRate, SynthInitOptions options);
+extension AudioWorkletNodeSynthesizerExt on AudioWorkletNodeSynthesizer {
+  external void init(JSNumber sampleRate);
+  external web.AudioWorkletNode createAudioNode(web.BaseAudioContext context);
   external JSPromise loadSFont(JSArrayBuffer buffer);
-  external web.AudioNode? createAudioNode(
-    web.BaseAudioContext context,
-    JSAny bufferSize,
-  );
   external void midiProgramSelect(
     JSAny channel,
     JSAny sfontId,
@@ -271,15 +244,4 @@ extension SynthesizerExt on Synthesizer {
   external void midiSystemReset();
   external void unloadSFont(JSAny sfontId);
   external void close();
-}
-
-@JS()
-@anonymous
-@staticInterop
-class SynthInitOptions {
-  external factory SynthInitOptions({
-    JSAny? initialGain,
-    JSAny? polyphony,
-    JSAny? midiChannelCount,
-  });
 }
