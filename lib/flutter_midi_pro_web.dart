@@ -98,8 +98,10 @@ class FlutterMidiProWeb extends FlutterMidiProPlatform {
     _log('Synthesizer constructed. Starting init.');
     final synthObj = synthInstance;
     final initOptions = SynthInitOptions(
-      initialGain: 0.8.toJS,
-      polyphony: 64.toJS,
+      // Lower gain to reduce clipping artifacts in browsers.
+      initialGain: 0.45.toJS,
+      // Slightly lower polyphony to ease CPU on web.
+      polyphony: 48.toJS,
       midiChannelCount: 16.toJS,
     );
     _log(
@@ -115,7 +117,8 @@ class FlutterMidiProWeb extends FlutterMidiProPlatform {
     _log('SoundFont loaded with id $sfontId; creating audio node.');
     final node = synthObj.createAudioNode(
       ctx,
-      256.toJS,
+      // Larger buffer helps avoid underruns/metallic artifacts on web.
+      1024.toJS,
     );
     if (node == null) {
       _log('createAudioNode returned null.');
