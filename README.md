@@ -5,7 +5,7 @@ forked the great: https://github.com/melihhakanpektas/flutter_midi_pro project b
 [![pub package](https://img.shields.io/pub/v/flutter_midi_pro.svg)](https://pub.dartlang.org/packages/flutter_midi_pro)[![GitHub stars](https://img.shields.io/github/stars/MelihHakanPektas/flutter_midi_pro.svg?style=social)](https://github.com/MelihHakanPektas/flutter_midi_pro)
 [![GitHub issues](https://img.shields.io/github/issues/MelihHakanPektas/flutter_midi_pro.svg)](https://github.com/MelihHakanPektas/flutter_midi_pro/issues)
 
-The `flutter_midi_pro` plugin provides functions for loading SoundFont (.sf2) files and playing MIDI notes in Flutter applications. This plugin is using fluidsynth on Android, AVFoundation on iOS and MacOS to play MIDI notes. The plugin is compatible with Android, iOS and macos platforms. Windows, Linux and Web support will be added in the future using fluidsynth.
+The `flutter_midi_pro` plugin provides functions for loading SoundFont (.sf2) files and playing MIDI notes in Flutter applications. This plugin uses FluidSynth on Android, AVFoundation on iOS and macOS, and now ships with a FluidSynth WebAssembly backend for Web (js-synthesizer) to keep rapid, back-to-back notes smooth. Windows and Linux support will be added in the future.
 
 ## Android (Important!)
 
@@ -17,6 +17,21 @@ To use this plugin, add `flutter_midi_pro` using terminal or pubspec.yaml file.
 
 ```bash
 flutter pub add flutter_midi_pro
+```
+
+## Web support
+
+- Uses FluidSynth-WASM via `js-synthesizer` for smoother legato/rapid notes (low buffer size for back-to-back notes).
+- Declare your SoundFont assets in your app `pubspec.yaml` and load them with `MidiPro().loadSoundfontAsset(...)`.
+- Plugin auto-loads bundled JS/WASM glue from `packages/flutter_midi_pro/web/js_synthesizer/*`; no manual `<script>` tags required.
+- `loadSoundfontFile` is not available on web (browsers cannot access arbitrary file paths); use assets or in-memory data instead.
+- Example asset declaration:
+
+```yaml
+flutter:
+  assets:
+    - assets/TimGM6mb.sf2
+    - assets/SalC5Light2.sf2
 ```
 
 ## Usage

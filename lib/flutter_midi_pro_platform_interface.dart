@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_midi_pro/flutter_midi_pro_method_channel.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
@@ -14,6 +16,10 @@ abstract class FlutterMidiProPlatform extends PlatformInterface {
 
   Future<int> loadSoundfont(String path, int bank, int program) {
     throw UnimplementedError('loadSoundfont() has not been implemented.');
+  }
+
+  Future<int> loadSoundfontBytes(Uint8List data, int bank, int program) {
+    throw UnimplementedError('loadSoundfontBytes() has not been implemented.');
   }
 
   Future<void> selectInstrument(int sfId, int channel, int bank, int program) {

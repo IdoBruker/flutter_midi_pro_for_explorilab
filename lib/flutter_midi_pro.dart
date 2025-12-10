@@ -1,8 +1,10 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_midi_pro/flutter_midi_pro_platform_interface.dart';
-import 'package:path_provider/path_provider.dart';
+
+import 'src/file_utils_stub.dart' if (dart.library.io) 'src/file_utils_io.dart'
+    as file_utils;
 
 /// The FlutterMidiPro class provides functions for writing to and loading soundfont
 /// files, as well as playing and stopping MIDI notes.
@@ -20,38 +22,57 @@ class MidiPro {
 
   /// Loads a soundfont file from the specified asset path.
   /// Returns the sfId (SoundfontSamplerId).
-  Future<int> loadSoundfontAsset({required String assetPath, int bank = 0, int program = 0}) async {
-    final tempDir = await getTemporaryDirectory();
-    final tempFile = File('${tempDir.path}/${assetPath.split('/').last}');
-    if (!tempFile.existsSync()) {
-      final byteData = await rootBundle.load(assetPath);
-      final buffer = byteData.buffer;
-      await tempFile
-          .writeAsBytes(buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes));
-    }
-    return FlutterMidiProPlatform.instance.loadSoundfont(tempFile.path, bank, program);
+  Future<int> loadSoundfontAsset({
+    required String assetPath,
+    int bank = 0,
+    int program = 0,
+  }) async {
+    final byteData = await rootBundle.load(assetPath);
+    final buffer = byteData.buffer;
+    final data = buffer.asUint8List(
+      byteData.offsetInBytes,
+      byteData.lengthInBytes,
+    );
+    return FlutterMidiProPlatform.instance.loadSoundfontBytes(
+      data,
+      bank,
+      program,
+    );
   }
 
   /// Loads a soundfont file from the specified file path.
   /// Returns the sfId (SoundfontSamplerId).
-  Future<int> loadSoundfontFile({required String filePath, int bank = 0, int program = 0}) async {
-    final tempDir = await getTemporaryDirectory();
-    final tempFile = File('${tempDir.path}/${filePath.split('/').last}');
-    if (!tempFile.existsSync()) {
-      final file = File(filePath);
-      await file.copy(tempFile.path);
+  Future<int> loadSoundfontFile({
+    required String filePath,
+    int bank = 0,
+    int program = 0,
+  }) async {
+    try {
+      final data = await file_utils.readFileBytes(filePath);
+      return FlutterMidiProPlatform.instance.loadSoundfontBytes(
+        data,
+        bank,
+        program,
+      );
+    } on UnsupportedError catch (err) {
+      throw UnsupportedError(
+        'loadSoundfontFile is not supported on web. Use loadSoundfontAsset or loadSoundfontData. ${err.message}',
+      );
     }
-    return FlutterMidiProPlatform.instance.loadSoundfont(tempFile.path, bank, program);
   }
 
   /// Loads a soundfont file from the specified data.
   /// Returns the sfId (SoundfontSamplerId).
-  Future<int> loadSoundfontData({required Uint8List data, int bank = 0, int program = 0}) async {
-    final tempDir = await getTemporaryDirectory();
-    final randomTempFileName = 'soundfont_${DateTime.now().millisecondsSinceEpoch}.sf2';
-    final tempFile = File('${tempDir.path}/$randomTempFileName');
-    tempFile.writeAsBytesSync(data);
-    return FlutterMidiProPlatform.instance.loadSoundfont(tempFile.path, bank, program);
+  Future<int> loadSoundfontData({
+    required Uint8List data,
+    int bank = 0,
+    int program = 0,
+  }) async {
+    return FlutterMidiProPlatform.instance.loadSoundfontBytes(
+      data,
+      bank,
+      program,
+    );
   }
 
   /// Selects an instrument on the specified soundfont.
@@ -76,7 +97,12 @@ class MidiPro {
     /// have banks, set this to 0.
     int bank = 0,
   }) async {
-    return FlutterMidiProPlatform.instance.selectInstrument(sfId, channel, bank, program);
+    return FlutterMidiProPlatform.instance.selectInstrument(
+      sfId,
+      channel,
+      bank,
+      program,
+    );
   }
 
   /// Plays a note on the specified channel.
@@ -99,7 +125,12 @@ class MidiPro {
     /// The soundfont ID. First soundfont loaded is 1.
     int sfId = 1,
   }) async {
-    return FlutterMidiProPlatform.instance.playNote(channel, key, velocity, sfId);
+    return FlutterMidiProPlatform.instance.playNote(
+      channel,
+      key,
+      velocity,
+      sfId,
+    );
   }
 
   /// Stops a note on the specified channel.
