@@ -16,6 +16,20 @@ public class FlutterMidiProPlugin: NSObject, FlutterPlugin {
     registrar.addMethodCallDelegate(instance, channel: channel)
   }
 
+  private func samplerFor(_ sfId: Int, channel: Int, result: @escaping FlutterResult) -> AVAudioUnitSampler? {
+    guard let samplers = soundfontSamplers[sfId] else {
+      result(FlutterError(code: "SOUND_FONT_NOT_FOUND", message: "Soundfont not found", details: nil))
+      return nil
+    }
+
+    guard channel >= 0 && channel < samplers.count else {
+      result(FlutterError(code: "INVALID_CHANNEL", message: "Channel out of range", details: nil))
+      return nil
+    }
+
+    return samplers[channel]
+  }
+
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
     case "loadSoundfont":
@@ -34,17 +48,23 @@ public class FlutterMidiProPlugin: NSObject, FlutterPlugin {
             do {
                 try audioEngine.start()
             } catch {
+                chAudioEngines.forEach { engine in
+                    engine.stop()
+                }
                 result(FlutterError(code: "AUDIO_ENGINE_START_FAILED", message: "Failed to start audio engine", details: nil))
                 return
             }
+            chAudioEngines.append(audioEngine)
             do {
                 try sampler.loadSoundBankInstrument(at: url, program: UInt8(program), bankMSB: UInt8(kAUSampler_DefaultMelodicBankMSB), bankLSB: UInt8(bank))
             } catch {
+                chAudioEngines.forEach { engine in
+                    engine.stop()
+                }
                 result(FlutterError(code: "SOUND_FONT_LOAD_FAILED", message: "Failed to load soundfont", details: nil))
                 return
             }
             chSamplers.append(sampler)
-            chAudioEngines.append(audioEngine)
         }
         soundfontSamplers[soundfontIndex] = chSamplers
         soundfontURLs[soundfontIndex] = url
@@ -57,8 +77,13 @@ public class FlutterMidiProPlugin: NSObject, FlutterPlugin {
         let channel = args["channel"] as! Int
         let bank = args["bank"] as! Int
         let program = args["program"] as! Int
-        let soundfontSampler = soundfontSamplers[sfId]![channel]
-        let soundfontUrl = soundfontURLs[sfId]!
+        guard let soundfontSampler = samplerFor(sfId, channel: channel, result: result) else {
+            return
+        }
+        guard let soundfontUrl = soundfontURLs[sfId] else {
+            result(FlutterError(code: "SOUND_FONT_NOT_FOUND", message: "Soundfont not found", details: nil))
+            return
+        }
         do {
             try soundfontSampler.loadSoundBankInstrument(at: soundfontUrl, program: UInt8(program), bankMSB: UInt8(kAUSampler_DefaultMelodicBankMSB), bankLSB: UInt8(bank))
         } catch {
@@ -73,7 +98,9 @@ public class FlutterMidiProPlugin: NSObject, FlutterPlugin {
         let note = args["key"] as! Int
         let velocity = args["velocity"] as! Int
         let sfId = args["sfId"] as! Int
-        let soundfontSampler = soundfontSamplers[sfId]![channel]
+        guard let soundfontSampler = samplerFor(sfId, channel: channel, result: result) else {
+            return
+        }
         soundfontSampler.startNote(UInt8(note), withVelocity: UInt8(velocity), onChannel: UInt8(channel))
         result(nil)
     case "stopNote":
@@ -81,7 +108,9 @@ public class FlutterMidiProPlugin: NSObject, FlutterPlugin {
         let channel = args["channel"] as! Int
         let note = args["key"] as! Int
         let sfId = args["sfId"] as! Int
-        let soundfontSampler = soundfontSamplers[sfId]![channel]
+        guard let soundfontSampler = samplerFor(sfId, channel: channel, result: result) else {
+            return
+        }
         soundfontSampler.stopNote(UInt8(note), onChannel: UInt8(channel))
         result(nil)
     case "stopAllNotes":
@@ -92,8 +121,10 @@ public class FlutterMidiProPlugin: NSObject, FlutterPlugin {
             result(FlutterError(code: "SOUND_FONT_NOT_FOUND", message: "Soundfont not found", details: nil))
             return
         }
-        soundfontSampler!.forEach { (sampler) in
-            sampler.stopAllNotes()
+        soundfontSampler!.enumerated().forEach { (channel, sampler) in
+            for note in 0...127 {
+                sampler.stopNote(UInt8(note), onChannel: UInt8(channel))
+            }
         }
         result(nil)
     case "unloadSoundfont":
@@ -119,6 +150,7 @@ public class FlutterMidiProPlugin: NSObject, FlutterPlugin {
         }
         audioEngines = [:]
         soundfontSamplers = [:]
+        soundfontURLs = [:]
         result(nil)
     default:
       result(FlutterMethodNotImplemented)
