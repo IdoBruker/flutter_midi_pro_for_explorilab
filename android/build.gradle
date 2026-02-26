@@ -2,7 +2,7 @@ group = "com.melihhakanpektas.flutter_midi_pro"
 version = "1.0-SNAPSHOT"
 
 buildscript {
-    ext.kotlin_version = "1.8.22"
+    ext.kotlin_version = "2.1.21"
     repositories {
         google()
         mavenCentral()
@@ -46,7 +46,7 @@ android {
     defaultConfig {
         minSdk = 21
         ndk {
-            abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86_64'
+            abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
         }
     }
 

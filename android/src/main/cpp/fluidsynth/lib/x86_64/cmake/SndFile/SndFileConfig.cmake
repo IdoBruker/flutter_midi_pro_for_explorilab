@@ -11,7 +11,7 @@ set (SndFile_WITH_MPEG 0)
 ####### Any changes to this file will be overwritten by the next CMake run ####
 ####### The input file was SndFileConfig.cmake.in                            ########
 
-get_filename_component(PACKAGE_PREFIX_DIR "../../.." ABSOLUTE)
+get_filename_component(PACKAGE_PREFIX_DIR "${CMAKE_CURRENT_LIST_DIR}/../../../" ABSOLUTE)
 
 macro(set_and_check _var _file)
   set(${_var} "${_file}")
@@ -35,7 +35,7 @@ endmacro()
 include (CMakeFindDependencyMacro)
 
 if (NOT 1)
-	list (APPEND CMAKE_MODULE_PATH .)
+	list (APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
 endif ()
 
 if (SndFile_WITH_EXTERNAL_LIBS AND NOT 1)
@@ -51,10 +51,10 @@ if (SndFile_WITH_MPEG AND NOT 1)
 endif ()
 
 if (NOT 1)
-	list (REMOVE_ITEM CMAKE_MODULE_PATH .)
+	list (REMOVE_ITEM CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
 endif ()
 
-include (SndFileTargets.cmake)
+include (${CMAKE_CURRENT_LIST_DIR}/SndFileTargets.cmake)
 
 set_and_check (SndFile_INCLUDE_DIR "${PACKAGE_PREFIX_DIR}/include")
 set (SNDFILE_INCLUDE_DIR ${SndFile_INCLUDE_DIR})

@@ -9,7 +9,7 @@ set(OPUS_VERSION_PATCH )
 ####### Any changes to this file will be overwritten by the next CMake run ####
 ####### The input file was OpusConfig.cmake.in                            ########
 
-get_filename_component(PACKAGE_PREFIX_DIR "../../.." ABSOLUTE)
+get_filename_component(PACKAGE_PREFIX_DIR "${CMAKE_CURRENT_LIST_DIR}/../../../" ABSOLUTE)
 
 macro(set_and_check _var _file)
   set(${_var} "${_file}")
@@ -34,7 +34,7 @@ set_and_check(OPUS_INCLUDE_DIR "${PACKAGE_PREFIX_DIR}/include")
 set(OPUS_INCLUDE_DIR ${OPUS_INCLUDE_DIR};${OPUS_INCLUDE_DIR}/opus)
 set(OPUS_INCLUDE_DIRS "${PACKAGE_PREFIX_DIR}/include;${PACKAGE_PREFIX_DIR}/include/opus")
 
-include(OpusTargets.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/OpusTargets.cmake)
 
 set(OPUS_LIBRARY Opus::opus)
 set(OPUS_LIBRARIES Opus::opus)

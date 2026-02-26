@@ -1,6 +1,7 @@
 package com.melihhakanpektas.flutter_midi_pro
 
 import android.content.Context
+import android.util.Log
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -15,8 +16,22 @@ import kotlinx.coroutines.withContext
 /** FlutterMidiProPlugin */
 class FlutterMidiProPlugin: FlutterPlugin, MethodCallHandler {
   companion object {
+    private const val TAG = "FlutterMidiProPlugin"
+    private var nativeLibLoaded = false
+    private var nativeLibLoadError: String? = null
+
     init {
-      System.loadLibrary("native-lib")
+      try {
+        System.loadLibrary("c++_shared")
+        System.loadLibrary("native-lib")
+        nativeLibLoaded = true
+      } catch (err: UnsatisfiedLinkError) {
+        nativeLibLoadError = err.message ?: "Unable to load native-lib"
+        Log.e(TAG, "Failed to load native-lib", err)
+      } catch (err: Throwable) {
+        nativeLibLoadError = err.message ?: "Unexpected error while loading native-lib"
+        Log.e(TAG, "Unexpected native-lib load failure", err)
+      }
     }
     @JvmStatic
     private external fun loadSoundfont(path: String, bank: Int, program: Int): Int
@@ -42,12 +57,25 @@ class FlutterMidiProPlugin: FlutterPlugin, MethodCallHandler {
   private lateinit var channel : MethodChannel
   private lateinit var flutterPluginBinding: FlutterPlugin.FlutterPluginBinding
 
+  private fun ensureNativeLibLoaded(result: MethodChannel.Result): Boolean {
+    if (nativeLibLoaded) return true
+    result.error(
+      "NATIVE_LIB_LOAD_FAILED",
+      nativeLibLoadError ?: "native-lib was not loaded",
+      null
+    )
+    return false
+  }
+
   override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     this.flutterPluginBinding = flutterPluginBinding
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, "flutter_midi_pro")
     channel.setMethodCallHandler(this)
   }  
  override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
+    if (!ensureNativeLibLoaded(result)) {
+      return
+    }
     when (call.method) {
       "loadSoundfont" -> {
         CoroutineScope(Dispatchers.IO).launch {
