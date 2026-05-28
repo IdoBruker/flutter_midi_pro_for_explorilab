@@ -62,6 +62,12 @@ set_target_properties(cxx_shared PROPERTIES IMPORTED_LOCATION "${cxx_shared_path
 # Library that will be called directly from JAVA
 add_library(native-lib SHARED native-lib.cpp)
 
+# 16 KB ELF alignment required for arm64-v8a / x86_64 on Android 15+ (Google Play).
+target_link_options(native-lib PRIVATE
+    "-Wl,-z,max-page-size=16384"
+    "-Wl,-z,common-page-size=16384"
+)
+
 # Specifies the directory where the C or C++ source coude will look the #include <yourlibrary.h> header files
 target_include_directories(native-lib PRIVATE ${fluidsynth_DIR}/include)
 
